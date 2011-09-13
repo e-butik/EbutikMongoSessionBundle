@@ -1,0 +1,12 @@
+services:
+  session.storage:
+    class: Ebutik\MongoSessionBundle\SessionStorage\MongoODMSessionStorage
+    synthetic: true
+  
+  mongosession.listener:
+    class: Ebutik\MongoSessionBundle\Listener\MongoSessionListener
+    arguments:
+      - @service_container
+    tags:
+      - { name: kernel.listener, event: onCoreRequest, priority: 50 }
+      - { name: kernel.listener, event: onCoreResponse, priority: -50 }
