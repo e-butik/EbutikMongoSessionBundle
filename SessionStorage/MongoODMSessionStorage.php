@@ -30,14 +30,6 @@ class MongoODMSessionStorage implements SessionStorageInterface
   }
 
   /**
-   * @author Magnus Nordlander
-   **/
-  public function __destruct()
-  {
-    $this->flush();
-  }
-
-  /**
    * Starts the session.
    */
   public function start()
@@ -158,6 +150,8 @@ class MongoODMSessionStorage implements SessionStorageInterface
     {
       $this->session->write($subkey, $value);
     }
+    
+    $this->flush();
   }
 
   /**
