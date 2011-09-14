@@ -172,6 +172,16 @@ class Session
 
     return $retval;
   }
+  
+  /**
+   * @author Joakim Friberg
+   */
+  public function clear()
+  {
+    $this->scalar_attributes = array();
+    $this->serialized_attributes = array();
+    $this->embeddable_attributes->clear();
+  }
 
   /**
    * @author Magnus Nordlander

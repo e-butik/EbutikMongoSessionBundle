@@ -151,6 +151,8 @@ class MongoODMSessionStorage implements SessionStorageInterface
     {
       throw new \RuntimeException("This storage only stores Symfony2 data");
     }
+    
+    $this->session->clear();
 
     foreach ($data as $subkey => $value) 
     {
