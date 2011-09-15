@@ -1,8 +1,10 @@
 <?php
 
-namespace Ebutik\MongoSessionBundle\Listener;
+namespace Ebutik\MongoSessionBundle\EventListener;
 
 use Ebutik\MongoSessionBundle\SessionStorage\MongoODMSessionStorage;
+
+use Doctrine\ODM\MongoDB\DocumentManager;
 
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
@@ -18,21 +20,22 @@ use Symfony\Component\HttpFoundation\Cookie;
 class MongoSessionListener
 {
   private $container;
-
+  private $dm;
   private $options;
   
   /**
    * @author Magnus Nordlander
    **/
-  public function __construct($container, array $options = array())
+  public function __construct($container, DocumentManager $dm, array $options = array())
   {
     $this->container = $container;
+    $this->dm = $dm;
 
     $cookieDefaults = session_get_cookie_params();
 
     $this->options = array_merge(array(
         'name'          => '_SESS',
-        'lifetime'      => $cookieDefaults['lifetime'],
+        'lifetime'      => 86400,
         'path'          => $cookieDefaults['path'],
         'domain'        => $cookieDefaults['domain'],
         'secure'        => $cookieDefaults['secure'],
@@ -57,9 +60,9 @@ class MongoSessionListener
         $session_id = $request->cookies->get($this->options['name']);
       }
 
-      $session_storage = new MongoODMSessionStorage($this->container->get('doctrine.odm.mongodb.document_manager'), $session_id);
+      $session_storage = new MongoODMSessionStorage($this->dm, $this->options, $session_id);
 
-      $this->container->set('session.storage', $session_storage);
+      $this->container->set('ebutik.mongosession.storage', $session_storage);
     }
   }
 
@@ -67,25 +70,27 @@ class MongoSessionListener
   {
     if ($event->getRequestType() == HttpKernelInterface::MASTER_REQUEST)
     {
-      $session_storage = $this->container->get('session.storage');
+      $session_storage = $this->container->get('ebutik.mongosession.storage');
 
-      $response = $event->getResponse();
-
-      try 
+      if ($session_storage->isStarted())
       {
-        $session_id = $session_storage->getId(); //, $expire = 0, $path = '/', $domain = null, $secure = false, $httpOnly = false)
+        $response = $event->getResponse();
 
-        $response->headers->setCookie(new Cookie($this->options['name'], 
-                                                 $session_id, 
-                                                 $this->options['lifetime'], 
-                                                 $this->options['path'],
-                                                 $this->options['domain'],
-                                                 $this->options['secure'],
-                                                 $this->options['httponly']));
-      }
-      catch (\RuntimeException $e)
-      {
-        // Do nothing
+        try 
+        {
+          $session_id = $session_storage->getId();
+          $response->headers->setCookie(new Cookie($this->options['name'], 
+                                                   $session_id, 
+                                                   0, 
+                                                   $this->options['path'],
+                                                   $this->options['domain'],
+                                                   $this->options['secure'],
+                                                   $this->options['httponly']));
+        }
+        catch (\RuntimeException $e)
+        {
+          // Do nothing
+        }
       }
     }
   }  

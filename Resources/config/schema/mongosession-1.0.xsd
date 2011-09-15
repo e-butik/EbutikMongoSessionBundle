@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<xsd:schema xmlns="http://developer.e-butik.se/schema/dic/ebutikmongosessionbundle"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://developer.e-butik.se/schema/dic/ebutikmongosessionbundle"
+    elementFormDefault="qualified">
+
+  <xsd:element name="config" type="config" />
+
+  <xsd:complexType name="config">
+    <xsd:attribute name="document_manager" type="xsd:string" />
+  </xsd:complexType>
+</xsd:schema>

@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<container xmlns="http://symfony.com/schema/dic/services"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+  <parameters>
+      <parameter key="ebutik.mongosession.storage.class">Ebutik\MongoSessionBundle\SessionStorage\MongoODMSessionStorage</parameter>
+      <parameter key="ebutik.mongosession.listener.class">Ebutik\MongoSessionBundle\EventListener\MongoSessionListener</parameter>
+  </parameters>
+  
+  <services>
+      <service id="ebutik.mongosession.storage" class="%ebutik.mongosession.storage.class%" synthetic="true" />
+      <service id="ebutik.mongosession.listener" class="%ebutik.mongosession.listener.class%">
+        <argument type="service" id="service_container"/>
+        <argument type="service" id="ebutik.mongosession.document_manager"/>
+        <argument>%session.storage.options%</argument>
+  
+        <tag name="kernel.listener" event="onCoreRequest" priority="50" />
+        <tag name="kernel.listener" event="onCoreResponse" priority="-50" />
+      </service>
+  </services>
+</container>

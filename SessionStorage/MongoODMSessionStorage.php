@@ -14,19 +14,28 @@ use Doctrine\ODM\MongoDB\DocumentManager;
 class MongoODMSessionStorage implements SessionStorageInterface
 {
   protected $dm;
+  protected $options;
+  protected $request_session_id;
 
   protected $session = null;
-
-  protected $request_session_id;
 
   /**
    * @author Magnus Nordlander
    **/
-  public function __construct(DocumentManager $dm, $request_session_id = null)
+  public function __construct(DocumentManager $dm, $options, $request_session_id = null)
   {
     $this->dm = $dm;
+    $this->options = $options;
 
     $this->request_session_id = $request_session_id;
+  }
+
+  /**
+   * @author Magnus Nordlander
+   **/
+  public function isStarted()
+  {
+    return $this->session != null;
   }
 
   /**
@@ -34,9 +43,9 @@ class MongoODMSessionStorage implements SessionStorageInterface
    */
   public function start()
   {
-    if ($this->session == null)
+    if (!$this->isStarted())
     {
-      $this->dm->getRepository('Ebutik\MongoSessionBundle\Document\Session')->purgeBefore(new \DateTime("-14 day"));
+      $this->dm->getRepository('Ebutik\MongoSessionBundle\Document\Session')->purgeBefore(new \DateTime("-".$this->options['lifetime'].' second'));
 
       if ($this->request_session_id)
       {
