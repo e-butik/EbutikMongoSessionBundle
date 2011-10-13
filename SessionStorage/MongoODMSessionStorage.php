@@ -15,19 +15,50 @@ class MongoODMSessionStorage implements SessionStorageInterface
 {
   protected $dm;
   protected $options;
+
+  // NULL represents unset, false represents set, but with no session id
   protected $request_session_id;
+
+  protected $strict_request_checking;
 
   protected $session = null;
 
   /**
    * @author Magnus Nordlander
    **/
-  public function __construct(DocumentManager $dm, $options, $request_session_id = null)
+  public function __construct(DocumentManager $dm, array $options, $strict_request_checking = false)
   {
     $this->dm = $dm;
-    $this->options = $options;
 
+    $this->setOptions($options);
+
+    $this->strict_request_checking = (bool)$strict_request_checking;
+  }
+
+  public function setRequestSessionId($request_session_id = false)
+  {
     $this->request_session_id = $request_session_id;
+  }
+
+  protected function setOptions(array $options)
+  {
+    $cookieDefaults = session_get_cookie_params();
+
+    $this->options = array_merge(array(
+        'name'          => '_SESS',
+        'lifetime'      => 86400,
+        'path'          => $cookieDefaults['path'],
+        'domain'        => $cookieDefaults['domain'],
+        'secure'        => $cookieDefaults['secure'],
+        'httponly'      => isset($cookieDefaults['httponly']) ? $cookieDefaults['httponly'] : false,
+    ), $options);
+
+    session_name($this->options['name']);
+  }
+
+  public function getOptions()
+  {
+    return $this->options;
   }
 
   /**
@@ -36,6 +67,32 @@ class MongoODMSessionStorage implements SessionStorageInterface
   public function isStarted()
   {
     return $this->session != null;
+  }
+
+  public function getRequestSessionId()
+  {
+    /* 
+     * NativeSessionStorage cheats by using PHP methods that look at request cookies without using the request object.
+     * We need to be able to cheat like that too, but we only do it if the user hasn't requested that we're strict
+     * about the session id having to come from the request object.
+     */
+    if ($this->request_session_id === null && $this->strict_request_checking)
+    {
+      throw new \RuntimeException("A Mongo session cannot be started unless MongoODMSessionStorage::setRequestSessionId() has been called. If there is no current session, you still have to call the method, but with false as the argument.");
+    }
+    else if ($this->request_session_id === null && !$this->strict_request_checking)
+    {
+      if (isset($_COOKIE[$this->options['name']]))
+      {
+        $this->request_session_id = $_COOKIE[$this->options['name']];
+      }
+      else
+      {
+        $this->request_session_id = false;
+      }
+    }
+
+    return $this->request_session_id;
   }
 
   /**
@@ -47,9 +104,9 @@ class MongoODMSessionStorage implements SessionStorageInterface
     {
       $this->dm->getRepository('Ebutik\MongoSessionBundle\Document\Session')->purgeBefore(new \DateTime("-".$this->options['lifetime'].' second'));
 
-      if ($this->request_session_id)
+      if ($this->getRequestSessionId())
       {
-        $this->session = $this->dm->find('Ebutik\MongoSessionBundle\Document\Session', $this->request_session_id);
+        $this->session = $this->dm->find('Ebutik\MongoSessionBundle\Document\Session', $this->getRequestSessionId());
       }
 
       if (!$this->session)

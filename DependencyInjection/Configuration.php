@@ -15,6 +15,7 @@ class Configuration implements ConfigurationInterface
     $rootNode
       ->children()
         ->scalarNode('document_manager')->defaultValue('default')->end()
+        ->booleanNode('strict_request_checking')->defaultValue(false)->end()
       ->end()
     ;
 

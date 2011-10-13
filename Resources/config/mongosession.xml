@@ -8,12 +8,13 @@
   </parameters>
   
   <services>
-      <service id="ebutik.mongosession.storage" class="%ebutik.mongosession.storage.class%" synthetic="true" />
-      <service id="ebutik.mongosession.listener" class="%ebutik.mongosession.listener.class%">
-        <argument type="service" id="service_container"/>
+      <service id="ebutik.mongosession.storage" class="%ebutik.mongosession.storage.class%">
         <argument type="service" id="ebutik.mongosession.document_manager"/>
         <argument>%session.storage.options%</argument>
-  
+      </service>
+      <service id="ebutik.mongosession.listener" class="%ebutik.mongosession.listener.class%">
+        <argument type="service" id="ebutik.mongosession.storage" />
+
         <tag name="kernel.listener" event="onCoreRequest" priority="50" />
         <tag name="kernel.listener" event="onCoreResponse" priority="-50" />
       </service>
