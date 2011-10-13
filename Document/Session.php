@@ -52,6 +52,7 @@ class Session
     $this->generateId();
     $this->embeddable_attributes = new ArrayCollection;
     $this->created_at = new \DateTime();
+    $this->updateAccessTime();
   }
 
   /**
