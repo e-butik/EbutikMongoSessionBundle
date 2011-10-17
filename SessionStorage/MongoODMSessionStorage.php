@@ -5,6 +5,7 @@ namespace Ebutik\MongoSessionBundle\SessionStorage;
 use Symfony\Component\HttpFoundation\SessionStorage\SessionStorageInterface;
 
 use Ebutik\MongoSessionBundle\Document\Session;
+use Ebutik\MongoSessionBundle\Escaper\EscaperInterface;
 
 use Doctrine\ODM\MongoDB\DocumentManager;
 
@@ -13,22 +14,42 @@ use Doctrine\ODM\MongoDB\DocumentManager;
 **/
 class MongoODMSessionStorage implements SessionStorageInterface
 {
+  /**
+   * @var DocumentManager
+   */
   protected $dm;
+
+  /**
+   * @var EscaperInterface
+   */
+  protected $key_escaper;
+
+  /**
+   * @var array
+   */
   protected $options;
 
   // NULL represents unset, false represents set, but with no session id
   protected $request_session_id;
 
+  /**
+   * @var boolean
+   */
   protected $strict_request_checking;
 
+  /**
+   * @var Session|null
+   */
   protected $session = null;
 
   /**
    * @author Magnus Nordlander
    **/
-  public function __construct(DocumentManager $dm, array $options, $strict_request_checking = false)
+  public function __construct(DocumentManager $dm, EscaperInterface $key_escaper, array $options, $strict_request_checking = false)
   {
     $this->dm = $dm;
+
+    $this->key_escaper = $key_escaper;
 
     $this->setOptions($options);
 
@@ -156,7 +177,13 @@ class MongoODMSessionStorage implements SessionStorageInterface
       throw new \RuntimeException("This storage only stores Symfony2 data");
     }
 
-    return $this->session->readAll();
+    $attributes = array();
+    foreach($this->session->readAll() as $attribute_key => $attribute_value)
+    {
+      $attributes[$this->key_escaper->unescape($attribute_key)] = $attribute_value;
+    }
+
+    return $attributes;
   }
 
   /**
@@ -214,7 +241,7 @@ class MongoODMSessionStorage implements SessionStorageInterface
 
     foreach ($data as $subkey => $value) 
     {
-      $this->session->write($subkey, $value);
+      $this->session->write($this->key_escaper->escape($subkey), $value);
     }
     
     $this->flush();
