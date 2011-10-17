@@ -26,6 +26,7 @@ class Session
 
   /**
    * @mongodb:Field(type="date")
+   * @mongodb:Index
    */
   protected $accessed_at;
 
