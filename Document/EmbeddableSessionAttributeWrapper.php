@@ -2,22 +2,23 @@
 
 namespace Ebutik\MongoSessionBundle\Document;
 
+use Doctrine\ODM\MongoDB\Mapping\Annotations as MongoDB;
 use Ebutik\MongoSessionBundle\Interfaces\SessionEmbeddable;
 
 /**
  * 
- * @mongodb:EmbeddedDocument
+ * @MongoDB\EmbeddedDocument
  * @author Magnus Nordlander
  */
 class EmbeddableSessionAttributeWrapper
 {
   /**
-   * @mongodb:String
+   * @MongoDB\String
    */
   protected $key;
 
   /**
-   * @mongodb:EmbedOne
+   * @MongoDB\EmbedOne
    */
   protected $attribute;
 
