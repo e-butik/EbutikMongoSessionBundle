@@ -32,7 +32,7 @@ class MongoSessionListener
   /**
    * @author Magnus Nordlander
    **/
-  public function onCoreRequest(GetResponseEvent $event)
+  public function onKernelRequest(GetResponseEvent $event)
   {
     if ($event->getRequestType() == HttpKernelInterface::MASTER_REQUEST)
     {
@@ -50,7 +50,7 @@ class MongoSessionListener
     }
   }
 
-  public function onCoreResponse(FilterResponseEvent $event)
+  public function onKernelResponse(FilterResponseEvent $event)
   {
     if ($event->getRequestType() == HttpKernelInterface::MASTER_REQUEST)
     {
