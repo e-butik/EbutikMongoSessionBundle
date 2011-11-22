@@ -3,45 +3,46 @@
 namespace Ebutik\MongoSessionBundle\Document;
 
 use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\ODM\MongoDB\Mapping\Annotations as MongoDB;
 
 use Ebutik\MongoSessionBundle\Interfaces\SessionEmbeddable;
 
 /**
  * 
- * @mongodb:Document(repositoryClass="Ebutik\MongoSessionBundle\Repository\SessionRepository")
- * @mongodb:HasLifecycleCallbacks
+ * @MongoDB\Document(repositoryClass="Ebutik\MongoSessionBundle\Repository\SessionRepository")
+ * 
  * @author Magnus Nordlander
  */
 class Session
 {
   /**
-   * @mongodb:Id(strategy="NONE")
+   * @MongoDB\Id(strategy="NONE")
    */
   protected $id;
 
   /**
-   * @mongodb:Field(type="date")
+   * @MongoDB\Field(type="date")
    */
   protected $created_at;
 
   /**
-   * @mongodb:Field(type="date")
-   * @mongodb:Index
+   * @MongoDB\Field(type="date")
+   * @MongoDB\Index
    */
   protected $accessed_at;
 
   /**
-   * @mongodb:Hash
+   * @MongoDB\Hash
    */
   protected $scalar_attributes = array();
 
   /**
-   * @mongodb:EmbedMany(targetDocument="Ebutik\MongoSessionBundle\Document\EmbeddableSessionAttributeWrapper")
+   * @MongoDB\EmbedMany(targetDocument="Ebutik\MongoSessionBundle\Document\EmbeddableSessionAttributeWrapper")
    */
   protected $embeddable_attributes;
 
   /**
-   * @mongodb:Hash
+   * @MongoDB\Hash
    */
   protected $serialized_attributes = array();
 
@@ -58,7 +59,7 @@ class Session
 
   /**
    * @author Magnus Nordlander
-   * @mongodb:PostLoad
+   * @MongoDB\PostLoad
    **/
   public function updateAccessTime()
   {
