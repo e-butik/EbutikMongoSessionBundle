@@ -19,7 +19,7 @@ use Symfony\Component\HttpFoundation\Cookie;
  */
 class MongoSessionListener
 {
-  private $storage;
+  protected $storage;
   
   /**
    * @author Magnus Nordlander
