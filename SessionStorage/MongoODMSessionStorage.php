@@ -4,7 +4,9 @@ namespace Ebutik\MongoSessionBundle\SessionStorage;
 
 use Symfony\Component\HttpFoundation\SessionStorage\SessionStorageInterface;
 
-use Ebutik\MongoSessionBundle\Document\Session;
+use Symfony\Component\DependencyInjection\ContainerAwareInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+
 use Ebutik\MongoSessionBundle\Escaper\EscaperInterface;
 
 use Doctrine\ODM\MongoDB\DocumentManager;
@@ -12,7 +14,7 @@ use Doctrine\ODM\MongoDB\DocumentManager;
 /**
 * @author Magnus Nordlander
 **/
-class MongoODMSessionStorage implements SessionStorageInterface
+class MongoODMSessionStorage implements SessionStorageInterface, ContainerAwareInterface
 {
   /**
    * @var DocumentManager
@@ -29,13 +31,37 @@ class MongoODMSessionStorage implements SessionStorageInterface
    */
   protected $options;
 
-  // NULL represents unset, false represents set, but with no session id
+  /**
+   * @var integer|boolean
+   *
+   * NULL represents unset, false represents set, but with no session id
+   */
   protected $request_session_id;
+
+  /**
+   * @var string
+   */
+  protected $session_class;
+
+  /**
+   * @var string
+   */
+  protected $session_prototype_id;
 
   /**
    * @var boolean
    */
   protected $strict_request_checking;
+
+  /**
+   * @var integer
+   */
+  protected $purge_probability_divisor;
+
+  /**
+   * @var ContainerInterface
+   */
+  protected $container;
 
   /**
    * @var Session|null
@@ -45,7 +71,7 @@ class MongoODMSessionStorage implements SessionStorageInterface
   /**
    * @author Magnus Nordlander
    **/
-  public function __construct(DocumentManager $dm, EscaperInterface $key_escaper, array $options, $strict_request_checking = false)
+  public function __construct(DocumentManager $dm, EscaperInterface $key_escaper, array $options, $session_class, $session_prototype_id, $strict_request_checking = false, $purge_probability_divisor = 30)
   {
     $this->dm = $dm;
 
@@ -53,12 +79,20 @@ class MongoODMSessionStorage implements SessionStorageInterface
 
     $this->setOptions($options);
 
+    $this->session_class = $session_class;
+    $this->session_prototype_id = $session_prototype_id;
     $this->strict_request_checking = (bool)$strict_request_checking;
+    $this->purge_probability_divisor = $purge_probability_divisor;
   }
 
   public function setRequestSessionId($request_session_id = false)
   {
     $this->request_session_id = $request_session_id;
+  }
+
+  public function setContainer(ContainerInterface $container = null)
+  {
+    $this->container = $container;
   }
 
   protected function setOptions(array $options)
@@ -123,16 +157,20 @@ class MongoODMSessionStorage implements SessionStorageInterface
   {
     if (!$this->isStarted())
     {
-      $this->dm->getRepository('Ebutik\MongoSessionBundle\Document\Session')->purgeBefore(new \DateTime("-".$this->options['lifetime'].' second'));
+      if (mt_rand(0, $this->purge_probability_divisor-1) == 0)
+      {
+        $this->dm->getRepository($this->session_class)->purgeBefore(new \DateTime("-".$this->options['lifetime'].' second'));        
+      }
 
       if ($this->getRequestSessionId())
       {
-        $this->session = $this->dm->find('Ebutik\MongoSessionBundle\Document\Session', $this->getRequestSessionId());
+        $this->session = $this->dm->find($this->session_class, $this->getRequestSessionId());
+        $this->dm->detach($this->session);
       }
 
       if (!$this->session)
       {
-        $this->session = new Session;
+        $this->session = $this->container->get($this->session_prototype_id);
       }
     }
   }
@@ -280,8 +318,11 @@ class MongoODMSessionStorage implements SessionStorageInterface
   {
     if ($this->session)
     {
-      $this->dm->persist($this->session);
+      $this->dm->clear();
+      $merged = $this->dm->merge($this->session);
+      $this->dm->persist($merged);
       $this->dm->flush();
+      $this->dm->detach($merged);
     }
   }
 }

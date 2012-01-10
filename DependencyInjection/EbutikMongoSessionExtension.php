@@ -28,7 +28,10 @@ class EbutikMongoSessionExtension extends Extension
     );
 
     $storage_def = $container->getDefinition('ebutik.mongosession.storage');
+    $storage_def->addArgument('stdObject'); // This is changed in a compiler
+    $storage_def->addArgument($config['session_prototype_id']);
     $storage_def->addArgument($config['strict_request_checking']);
+    $storage_def->addArgument($config['purge_probability_divisor']);
   }
 
   public function getAlias()
