@@ -165,12 +165,15 @@ class MongoODMSessionStorage implements SessionStorageInterface, ContainerAwareI
       if ($this->getRequestSessionId())
       {
         $this->session = $this->dm->find($this->session_class, $this->getRequestSessionId());
-        $this->dm->detach($this->session);
       }
 
       if (!$this->session)
       {
         $this->session = $this->container->get($this->session_prototype_id);
+      }
+      else
+      {
+        $this->dm->detach($this->session);
       }
     }
   }
