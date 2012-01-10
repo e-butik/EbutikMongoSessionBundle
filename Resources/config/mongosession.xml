@@ -6,6 +6,7 @@
       <parameter key="ebutik.mongosession.storage.class">Ebutik\MongoSessionBundle\SessionStorage\MongoODMSessionStorage</parameter>
       <parameter key="ebutik.mongosession.listener.class">Ebutik\MongoSessionBundle\EventListener\MongoSessionListener</parameter>
       <parameter key="ebutik.mongosession.key_escaper.class">Ebutik\MongoSessionBundle\Escaper\Escaper</parameter>
+      <parameter key="ebutik.mongosession.session.class">Ebutik\MongoSessionBundle\Document\Session</parameter>
   </parameters>
   
   <services>
@@ -13,7 +14,14 @@
         <argument type="service" id="ebutik.mongosession.document_manager"/>
         <argument type="service" id="ebutik.mongosession.key_escaper"/>
         <argument>%session.storage.options%</argument>
+
+        <call method="setContainer">
+          <argument type="service" id="service_container" />
+        </call>
       </service>
+
+      <service id="ebutik.mongosession.session.prototype" class="%ebutik.mongosession.session.class%" scope="prototype" />
+
       <service id="ebutik.mongosession.listener" class="%ebutik.mongosession.listener.class%">
         <argument type="service" id="ebutik.mongosession.storage" />
 
