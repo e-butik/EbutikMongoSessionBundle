@@ -232,6 +232,13 @@ class Session
     if ($this->id) 
     {
       $this->generateId();
+
+      $new_array = new ArrayCollection;
+      foreach( $this->embeddable_attributes as $key => $wrapper ) {
+        $new_array->add(new EmbeddableSessionAttributeWrapper($wrapper->getKey(), clone $wrapper->getAttribute()));
+      }
+      $this->embeddable_attributes = $new_array;
+
     }
     // otherwise do nothing, do NOT throw an exception!
   }
