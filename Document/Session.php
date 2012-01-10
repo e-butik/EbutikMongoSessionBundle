@@ -127,15 +127,15 @@ class Session
   {
     return array_merge(
       $this->scalar_attributes,
-      array_map('unserialize', $this->serialized_attributes),
-      $this->getEmbeddableAttributeArray()
+      array_map('unserialize', $this->serialized_attributes)
+//      $this->getEmbeddableAttributeArray()
     );
   }
 
   /**
    * @author Magnus Nordlander
    **/
-  protected function getEmbeddableAttributeArray()
+  public function getEmbeddableAttributeArray()
   {
     $out = array();
     foreach ($this->embeddable_attributes as $wrapper)
@@ -197,7 +197,7 @@ class Session
     {
       $this->embeddable_attributes->add(new EmbeddableSessionAttributeWrapper($key, $data));
     }
-    else if (is_scalar($data))
+    else if (is_scalar($data) || $data === null)
     {
       $this->scalar_attributes[$key] = $data;
     }

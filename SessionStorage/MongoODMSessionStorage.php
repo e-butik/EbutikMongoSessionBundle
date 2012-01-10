@@ -9,6 +9,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 use Ebutik\MongoSessionBundle\Escaper\EscaperInterface;
 
+use Ebutik\MongoSessionBundle\Interfaces\SessionEmbeddable;
+
 use Doctrine\ODM\MongoDB\DocumentManager;
 
 /**
@@ -173,7 +175,7 @@ class MongoODMSessionStorage implements SessionStorageInterface, ContainerAwareI
       }
       else
       {
-        $this->dm->detach($this->session);
+        //$this->dm->detach($this->session);
       }
     }
   }
@@ -218,10 +220,15 @@ class MongoODMSessionStorage implements SessionStorageInterface, ContainerAwareI
       throw new \RuntimeException("This storage only stores Symfony2 data");
     }
 
-    $attributes = array();
+    $attributes = array('attributes' => array(), 'flashes' => array(), 'locale' => null);
     foreach($this->session->readAll() as $attribute_key => $attribute_value)
     {
       $attributes[$this->key_escaper->unescape($attribute_key)] = $attribute_value;
+    }
+    // Ugly temporary hack to handle changes in Symfony's session handling
+    foreach ($this->session->getEmbeddableAttributeArray() as $key => $value) 
+    {
+      $attributes['attributes'][$this->key_escaper->unescape($key)] = $value;
     }
 
     return $attributes;
@@ -282,6 +289,18 @@ class MongoODMSessionStorage implements SessionStorageInterface, ContainerAwareI
 
     foreach ($data as $subkey => $value) 
     {
+      if ($subkey == 'attributes')
+      {
+        // Ugly temporary hack to handle changes in Symfony's session handling
+        foreach ($value as $attribute => $attribute_value)
+        {
+          if ($attribute_value instanceof SessionEmbeddable)
+          {
+            unset($value[$attribute]);
+            $this->session->write($this->key_escaper->escape($attribute), $attribute_value);
+          }
+        }
+      }
       $this->session->write($this->key_escaper->escape($subkey), $value);
     }
     
@@ -321,11 +340,12 @@ class MongoODMSessionStorage implements SessionStorageInterface, ContainerAwareI
   {
     if ($this->session)
     {
-      $this->dm->clear();
-      $merged = $this->dm->merge($this->session);
-      $this->dm->persist($merged);
+//      $this->dm->clear();
+//      $merged = $this->dm->merge($this->session);
+//      $this->dm->persist($merged);
+      $this->dm->persist($this->session);
       $this->dm->flush();
-      $this->dm->detach($merged);
+//      $this->dm->detach($merged);
     }
   }
 }
