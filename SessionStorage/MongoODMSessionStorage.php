@@ -7,8 +7,6 @@ use Symfony\Component\HttpFoundation\SessionStorage\SessionStorageInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
-use Ebutik\MongoSessionBundle\Escaper\EscaperInterface;
-
 use Ebutik\MongoSessionBundle\Interfaces\SessionEmbeddable;
 
 use Doctrine\ODM\MongoDB\DocumentManager;
@@ -22,11 +20,6 @@ class MongoODMSessionStorage implements SessionStorageInterface, ContainerAwareI
    * @var DocumentManager
    */
   protected $dm;
-
-  /**
-   * @var EscaperInterface
-   */
-  protected $key_escaper;
 
   /**
    * @var array
@@ -73,11 +66,9 @@ class MongoODMSessionStorage implements SessionStorageInterface, ContainerAwareI
   /**
    * @author Magnus Nordlander
    **/
-  public function __construct(DocumentManager $dm, EscaperInterface $key_escaper, array $options, $session_class, $session_prototype_id, $strict_request_checking = false, $purge_probability_divisor = 30)
+  public function __construct(DocumentManager $dm, array $options, $session_class, $session_prototype_id, $strict_request_checking = false, $purge_probability_divisor = 30)
   {
     $this->dm = $dm;
-
-    $this->key_escaper = $key_escaper;
 
     $this->setOptions($options);
 
@@ -173,10 +164,6 @@ class MongoODMSessionStorage implements SessionStorageInterface, ContainerAwareI
       {
         $this->session = $this->container->get($this->session_prototype_id);
       }
-      else
-      {
-        //$this->dm->detach($this->session);
-      }
     }
   }
 
@@ -215,23 +202,15 @@ class MongoODMSessionStorage implements SessionStorageInterface, ContainerAwareI
       throw new \RuntimeException("The session is not started yet.");
     }
 
-    if ($key != '_symfony2')
+    $data = $this->session->getAttributeBag()->get($key);
+
+    // Fix SF2 semi-bug
+    if ($key == '_symfony2' && !isset($data['flashes']))
     {
-      throw new \RuntimeException("This storage only stores Symfony2 data");
+      $data['flashes'] = array();
     }
 
-    $attributes = array('attributes' => array(), 'flashes' => array(), 'locale' => null);
-    foreach($this->session->readAll() as $attribute_key => $attribute_value)
-    {
-      $attributes[$this->key_escaper->unescape($attribute_key)] = $attribute_value;
-    }
-    // Ugly temporary hack to handle changes in Symfony's session handling
-    foreach ($this->session->getEmbeddableAttributeArray() as $key => $value) 
-    {
-      $attributes['attributes'][$this->key_escaper->unescape($key)] = $value;
-    }
-
-    return $attributes;
+    return $data;
   }
 
   /**
@@ -252,15 +231,7 @@ class MongoODMSessionStorage implements SessionStorageInterface, ContainerAwareI
       throw new \RuntimeException("The session is not started yet.");
     }
 
-    if ($key != '_symfony2')
-    {
-      throw new \RuntimeException("This storage only stores Symfony2 data");
-    }
-
-    foreach ($data as $subkey) 
-    {
-      $this->session->remove($subkey);
-    }
+    $this->session->getAttributeBag()->remove($key);
   }
 
   /**
@@ -280,30 +251,8 @@ class MongoODMSessionStorage implements SessionStorageInterface, ContainerAwareI
       throw new \RuntimeException("The session is not started yet.");
     }
 
-    if ($key != '_symfony2')
-    {
-      throw new \RuntimeException("This storage only stores Symfony2 data");
-    }
-    
-    $this->session->clear();
+    $this->session->getAttributeBag()->set($key, $data);
 
-    foreach ($data as $subkey => $value) 
-    {
-      if ($subkey == 'attributes')
-      {
-        // Ugly temporary hack to handle changes in Symfony's session handling
-        foreach ($value as $attribute => $attribute_value)
-        {
-          if ($attribute_value instanceof SessionEmbeddable)
-          {
-            unset($value[$attribute]);
-            $this->session->write($this->key_escaper->escape($attribute), $attribute_value);
-          }
-        }
-      }
-      $this->session->write($this->key_escaper->escape($subkey), $value);
-    }
-    
     $this->flush();
   }
 
@@ -340,12 +289,8 @@ class MongoODMSessionStorage implements SessionStorageInterface, ContainerAwareI
   {
     if ($this->session)
     {
-//      $this->dm->clear();
-//      $merged = $this->dm->merge($this->session);
-//      $this->dm->persist($merged);
       $this->dm->persist($this->session);
       $this->dm->flush();
-//      $this->dm->detach($merged);
     }
   }
 }

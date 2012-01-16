@@ -13,7 +13,6 @@ class Escaper implements EscaperInterface
    * @var array
    */
   protected $map = array('.' => '-'); // TODO remove the default value when the patch (https://github.com/symfony/symfony/pull/2427) will be applied
-
   /**
    * @var boolean
    */

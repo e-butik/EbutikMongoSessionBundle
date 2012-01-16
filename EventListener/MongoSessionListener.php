@@ -10,6 +10,8 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
 
+use Symfony\Component\HttpFoundation\Session as SymfonySession;
+
 use Symfony\Component\HttpFoundation\Cookie;
 
 /**
@@ -20,13 +22,15 @@ use Symfony\Component\HttpFoundation\Cookie;
 class MongoSessionListener
 {
   protected $storage;
+  protected $symfony_session;
   
   /**
    * @author Magnus Nordlander
    **/
-  public function __construct(MongoODMSessionStorage $storage)
+  public function __construct(MongoODMSessionStorage $storage, SymfonySession $session)
   {
     $this->storage = $storage;
+    $this->symfony_session = $session;
   }
   
   /**
@@ -70,6 +74,10 @@ class MongoSessionListener
                                                    $options['domain'],
                                                    $options['secure'],
                                                    $options['httponly']));
+
+          $this->symfony_session->save();
+          // Prevent race conditions by closing early.
+          $this->symfony_session->close();
         }
         catch (\RuntimeException $e)
         {
