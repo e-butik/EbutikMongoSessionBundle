@@ -20,14 +20,14 @@ class SetPrototypeClassPass implements CompilerPassInterface
     $storage_def = $container->getDefinition('ebutik.mongosession.storage');
     $args = $storage_def->getArguments();
 
-    $prototype_id = $args[4];
+    $prototype_id = $args[3];
 
     if (!$container->hasDefinition($prototype_id)) {
       throw new \RuntimeException("MongoDB Session Prototype doesn't exist");
     }
 
     $prototype_def = $container->getDefinition($prototype_id);
-    $args[3] = $prototype_def->getClass();
+    $args[2] = $prototype_def->getClass();
 
     $storage_def->setArguments($args);
   }
