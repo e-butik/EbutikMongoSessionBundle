@@ -31,6 +31,11 @@ class EmbeddableSessionAttributeWrapper
     $this->attribute = $attribute;
   }
 
+  public function setKey($key)
+  {
+    $this->key = $key;
+  }
+
   /**
    * @author Magnus Nordlander
    **/

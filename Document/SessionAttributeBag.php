@@ -4,6 +4,8 @@ namespace Ebutik\MongoSessionBundle\Document;
 
 use Ebutik\MongoSessionBundle\Collection\FlatteningParameterBag;
 
+use Ebutik\MongoSessionBundle\Comparison\SessionEmbeddableDocumentsComparison;
+
 use Doctrine\ODM\MongoDB\Mapping\Annotations as MongoDB;
 
 use Doctrine\Common\Collections\ArrayCollection;
@@ -61,22 +63,55 @@ class SessionAttributeBag extends FlatteningParameterBag
     // otherwise do nothing, do NOT throw an exception!
   }
 
-  protected function clear()
+  protected function clearHashes()
   {
     $this->scalar_attributes = array();
     $this->serialized_attributes = array();
-    $this->embeddable_attributes->clear();
+  }
+
+  protected function getWrapperForKey($key)
+  {
+    foreach ($this->embeddable_attributes as $wrapper) 
+    {
+      if ($wrapper->getKey() == $key)
+      {
+        return $wrapper;
+      }
+    }
+  }
+
+  protected function updateEmbeddables(array $embeddables)
+  {
+    $comparison = new SessionEmbeddableDocumentsComparison($this->embeddable_attributes->toArray(), $embeddables);
+
+    foreach ($comparison->getRemovedWrappers() as $wrapper) 
+    {
+      $this->embeddable_attributes->removeElement($wrapper);
+    }
+
+    foreach ($comparison->getAddedKeyDocumentArray() as $key => $document) 
+    {
+      $this->embeddable_attributes->add(new EmbeddableSessionAttributeWrapper($key, $document));
+    }
+
+    foreach ($comparison->getKeyUpdateTranslationArray() as $old => $new) 
+    {
+      $this->getWrapperForKey($old)->setKey($new);
+    }
   }
 
   protected function _write(array $data)
   {
-    $this->clear();
+    // We can't do this to embeds, because that makes Doctrine a sad panda.
+    $this->clearHashes();
+
+    $embeddables = array();
 
     foreach ($data as $key => $subdata)
     {
       if ($subdata instanceOf SessionEmbeddable)
       {
-        $this->embeddable_attributes->add(new EmbeddableSessionAttributeWrapper($key, $subdata));
+        $embeddables[$key] = $subdata;
       }
       else if (is_scalar($subdata) || $subdata === null)
       {
@@ -88,9 +123,11 @@ class SessionAttributeBag extends FlatteningParameterBag
       }
       else
       {
-        throw new \RuntimeError("Data of type ".gettype($subdata)." cannot be saved in the session");
+        throw new \RuntimeException("Data of type ".gettype($subdata)." cannot be saved in the session");
       }
     }
+
+    $this->updateEmbeddables($embeddables);
   }
 
   protected function getKeyValueArrayForEmbeddedObjects()
