@@ -61,7 +61,7 @@ class Session
   /**
    * @author Magnus Nordlander
    **/
-  private function generateId()
+  protected function generateId()
   {
     $this->id = mt_rand().uniqid();
   }
