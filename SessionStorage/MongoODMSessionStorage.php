@@ -234,6 +234,16 @@ class MongoODMSessionStorage implements SessionStorageInterface, ContainerAwareI
     return $attributes;
   }
 
+  protected function getSubkeys()
+  {
+    return array_keys($this->session->readAll());
+  }
+
+  protected function getAttributeKeys()
+  {
+    return array_keys($this->session->getEmbeddableAttributeArray());
+  }
+
   /**
    * Removes data from this storage.
    *
@@ -284,8 +294,9 @@ class MongoODMSessionStorage implements SessionStorageInterface, ContainerAwareI
     {
       throw new \RuntimeException("This storage only stores Symfony2 data");
     }
-    
-    $this->session->clear();
+
+    $set_subkeys = array();
+    $set_attributes = array();
 
     foreach ($data as $subkey => $value) 
     {
@@ -298,12 +309,24 @@ class MongoODMSessionStorage implements SessionStorageInterface, ContainerAwareI
           {
             unset($value[$attribute]);
             $this->session->write($this->key_escaper->escape($attribute), $attribute_value);
+            $set_attributes[] = $this->key_escaper->escape($attribute);
           }
         }
       }
       $this->session->write($this->key_escaper->escape($subkey), $value);
+      $set_subkeys[] = $this->key_escaper->escape($subkey);
     }
-    
+
+    foreach (array_diff($this->getSubkeys(), $set_subkeys) as $key)
+    {
+      $this->session->remove($key);
+    }
+
+    foreach (array_diff($this->getAttributeKeys(), $set_attributes) as $key)
+    {
+      $this->session->remove($key);
+    }
+
     $this->flush();
   }
 

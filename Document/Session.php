@@ -183,7 +183,12 @@ class Session
   {
     $this->scalar_attributes = array();
     $this->serialized_attributes = array();
-    $this->embeddable_attributes->clear();
+    // We can't use clear() here, because that issues an $unset, causing a race condition
+    foreach ($this->embeddable_attributes as $key => $value)
+    {
+      $this->embeddable_attributes->remove($key);
+    }
+//    $this->embeddable_attributes->clear();
   }
 
   /**
@@ -191,34 +196,41 @@ class Session
    **/
   public function write($key, $data)
   {
-    $this->remove($key);
-
-    if ($data instanceOf SessionEmbeddable)
+    if (($wrapper = $this->findEmbeddableAttributeWrapper($key)) && ($data instanceOf SessionEmbeddable))
     {
-      $this->embeddable_attributes->add(new EmbeddableSessionAttributeWrapper($key, $data));
-    }
-    else if (is_scalar($data) || $data === null)
-    {
-      $this->scalar_attributes[$key] = $data;
-    }
-    else if (is_object($data))
-    {
-      $this->serialized_attributes[$key] = serialize($data);
-    }
-    else if (is_array($data))
-    {
-      if (self::arrayOnlyContainsScalarsRecursive($data))
-      {
-        $this->scalar_attributes[$key] = $data;
-      }
-      else
-      {
-        $this->serialized_attributes[$key] = serialize($data);
-      }
+      $wrapper->setAttribute($data);
     }
     else
     {
-      throw new \RuntimeError("Data of type ".gettype($data)." cannot be saved in the session");
+      $this->remove($key);
+
+      if ($data instanceOf SessionEmbeddable)
+      {
+        $this->embeddable_attributes->add(new EmbeddableSessionAttributeWrapper($key, $data));
+      }
+      else if (is_scalar($data) || $data === null)
+      {
+        $this->scalar_attributes[$key] = $data;
+      }
+      else if (is_object($data))
+      {
+        $this->serialized_attributes[$key] = serialize($data);
+      }
+      else if (is_array($data))
+      {
+        if (self::arrayOnlyContainsScalarsRecursive($data))
+        {
+          $this->scalar_attributes[$key] = $data;
+        }
+        else
+        {
+          $this->serialized_attributes[$key] = serialize($data);
+        }
+      }
+      else
+      {
+        throw new \RuntimeError("Data of type ".gettype($data)." cannot be saved in the session");
+      }
     }
   }
 

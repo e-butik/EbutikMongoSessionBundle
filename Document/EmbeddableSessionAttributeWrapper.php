@@ -46,4 +46,9 @@ class EmbeddableSessionAttributeWrapper
   {
     return $this->attribute;
   }
+
+  public function setAttribute(SessionEmbeddable $attribute)
+  {
+    $this->attribute = $attribute;
+  }
 }
