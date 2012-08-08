@@ -37,7 +37,7 @@ class Session
   protected $scalar_attributes = array();
 
   /**
-   * @MongoDB\EmbedMany(targetDocument="Ebutik\MongoSessionBundle\Document\EmbeddableSessionAttributeWrapper")
+   * @MongoDB\EmbedMany(strategy="set")
    */
   protected $embeddable_attributes;
 
@@ -77,21 +77,6 @@ class Session
   /**
    * @author Magnus Nordlander
    **/
-  protected function findEmbeddableAttributeWrapper($key)
-  {
-    foreach ($this->embeddable_attributes as $wrapper)
-    {
-      if ($wrapper->getKey() == $key)
-      {
-        return $wrapper;
-      }
-    }
-    return null;
-  }
-
-  /**
-   * @author Magnus Nordlander
-   **/
   public function getId()
   {
     return $this->id;
@@ -110,9 +95,9 @@ class Session
     {
       return unserialize($this->scalar_attributes[$key]);
     }
-    else if ($wrapper = $this->findEmbeddableAttributeWrapper($key))
+    else if (isset($this->embeddable_attributes[$key]))
     {
-      return $wrapper->getAttribute();
+      return $this->embeddable_attributes[$key];
     }
     else
     {
@@ -135,15 +120,9 @@ class Session
   /**
    * @author Magnus Nordlander
    **/
-  public function getEmbeddableAttributeArray()
+  public function getEmbeddableAttributes()
   {
-    $out = array();
-    foreach ($this->embeddable_attributes as $wrapper)
-    {
-      $out[$wrapper->getKey()] = $wrapper->getAttribute();
-    }
-
-    return $out;
+    return $this->embeddable_attributes;
   }
 
   /**
@@ -163,10 +142,10 @@ class Session
       $retval = unserialize($this->serialized_attributes[$key]);
       unset($this->serialized_attributes[$key]);
     }
-    else if ($wrapper = $this->findEmbeddableAttributeWrapper($key))
+    else if (isset($this->embeddable_attributes[$key]))
     {
-      $retval = $wrapper->getAttribute();
-      $this->embeddable_attributes->removeElement($wrapper);
+      $retval = $this->embeddable_attributes[$key];
+      $this->embeddable_attributes->remove($key);
     }
     else
     {
@@ -196,9 +175,9 @@ class Session
    **/
   public function write($key, $data)
   {
-    if (($wrapper = $this->findEmbeddableAttributeWrapper($key)) && ($data instanceOf SessionEmbeddable))
+    if (isset($this->embeddable_attributes[$key]) && ($data instanceOf SessionEmbeddable))
     {
-      $wrapper->setAttribute($data);
+      $this->embeddable_attributes[$key] = $data;
     }
     else
     {
@@ -206,7 +185,7 @@ class Session
 
       if ($data instanceOf SessionEmbeddable)
       {
-        $this->embeddable_attributes->add(new EmbeddableSessionAttributeWrapper($key, $data));
+        $this->embeddable_attributes[$key] = $data;
       }
       else if (is_scalar($data) || $data === null)
       {
@@ -246,8 +225,8 @@ class Session
       $this->generateId();
 
       $new_array = new ArrayCollection;
-      foreach( $this->embeddable_attributes as $key => $wrapper ) {
-        $new_array->add(new EmbeddableSessionAttributeWrapper($wrapper->getKey(), clone $wrapper->getAttribute()));
+      foreach( $this->embeddable_attributes as $key => $data ) {
+        $new_array[$key] = clone $data;
       }
       $this->embeddable_attributes = $new_array;
 

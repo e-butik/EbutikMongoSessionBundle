@@ -226,7 +226,7 @@ class MongoODMSessionStorage implements SessionStorageInterface, ContainerAwareI
       $attributes[$this->key_escaper->unescape($attribute_key)] = $attribute_value;
     }
     // Ugly temporary hack to handle changes in Symfony's session handling
-    foreach ($this->session->getEmbeddableAttributeArray() as $key => $value) 
+    foreach ($this->session->getEmbeddableAttributes() as $key => $value) 
     {
       $attributes['attributes'][$this->key_escaper->unescape($key)] = $value;
     }
@@ -241,7 +241,7 @@ class MongoODMSessionStorage implements SessionStorageInterface, ContainerAwareI
 
   protected function getAttributeKeys()
   {
-    return array_keys($this->session->getEmbeddableAttributeArray());
+    return $this->session->getEmbeddableAttributes()->getKeys();
   }
 
   /**
