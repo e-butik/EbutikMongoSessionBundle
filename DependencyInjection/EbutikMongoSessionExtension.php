@@ -24,7 +24,7 @@ class EbutikMongoSessionExtension extends Extension
 
     $container->setAlias(
         'ebutik.mongosession.document_manager',
-        new Alias(sprintf('doctrine.odm.mongodb.%s_document_manager', $config['document_manager']))
+        new Alias(sprintf('doctrine_mongodb.odm.%s_document_manager', $config['document_manager']))
     );
 
     $storage_def = $container->getDefinition('ebutik.mongosession.storage');
