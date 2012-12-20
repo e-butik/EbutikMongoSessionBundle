@@ -3,7 +3,7 @@
     "type": "symfony-bundle",
     "description": "Ebutik MongoSessionBundle for Symfony2",
     "keywords": ["session", "mongodb"],
-    "license": "LGPL",
+    "license": "MIT",
     "authors": [
         {"name": "Magnus Nordlander", "email": "magnus@nordlander.se"}
     ],
