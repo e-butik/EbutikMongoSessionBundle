@@ -281,6 +281,16 @@ class MongoODMSessionStorage implements SessionStorageInterface, ContainerAwareI
       $this->dm->remove($old_session);
     }
   }
+  
+  /**
+   * This function is run just before a session document is stored to the database.
+   * The default implementation updates the access time.
+   * 
+   * @author Ville Mattila
+   */
+  protected function doBeforeFlush() {
+	$this->session->updateAccessTime();
+  }
 
   /**
    * @author Magnus Nordlander
@@ -289,6 +299,9 @@ class MongoODMSessionStorage implements SessionStorageInterface, ContainerAwareI
   {
     if ($this->session)
     {
+	  // Run possible customized operations before the session document is persisted.  
+	  $this->doBeforeFlush();
+	  
       $this->dm->persist($this->session);
       $this->dm->flush();
     }

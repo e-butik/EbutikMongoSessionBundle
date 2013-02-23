@@ -51,7 +51,6 @@ class Session
 
   /**
    * @author Magnus Nordlander
-   * @MongoDB\PostLoad
    **/
   public function updateAccessTime()
   {
