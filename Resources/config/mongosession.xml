@@ -3,7 +3,7 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
   <parameters>
-      <parameter key="ebutik.mongosession.storage.class">Ebutik\MongoSessionBundle\SessionStorage\MongoODMSessionStorage</parameter>
+      <parameter key="ebutik.mongosession.storage.class">Ebutik\MongoSessionBundle\SessionStorage\ODMSessionStorage</parameter>
       <parameter key="ebutik.mongosession.listener.class">Ebutik\MongoSessionBundle\EventListener\MongoSessionListener</parameter>
       <parameter key="ebutik.mongosession.key_escaper.class">Ebutik\MongoSessionBundle\Escaper\Escaper</parameter>
       <parameter key="ebutik.mongosession.session.class">Ebutik\MongoSessionBundle\Document\Session</parameter>
@@ -13,10 +13,9 @@
       <service id="ebutik.mongosession.storage" class="%ebutik.mongosession.storage.class%">
         <argument type="service" id="ebutik.mongosession.document_manager"/>
         <argument type="service" id="ebutik.mongosession.key_escaper"/>
-        <argument>%session.storage.options%</argument>
 
-        <call method="setContainer">
-          <argument type="service" id="service_container" />
+        <call method="setRequest">
+            <argument type="service" id="request" on-invalid="null" strict="false" />
         </call>
       </service>
 

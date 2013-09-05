@@ -5,12 +5,16 @@ namespace Ebutik\MongoSessionBundle\Document;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ODM\MongoDB\Mapping\Annotations as MongoDB;
 
+use Symfony\Component\HttpFoundation\Session\Storage\MetadataBag;
+use Symfony\Component\Serializer\Serializer;
+
 use Ebutik\MongoSessionBundle\Interfaces\SessionEmbeddable;
+use Ebutik\MongoSessionBundle\Serializer\Normalizer;
 
 /**
- * 
+ *
  * @MongoDB\Document(repositoryClass="Ebutik\MongoSessionBundle\Repository\SessionRepository")
- * 
+ *
  * @author Magnus Nordlander
  */
 class Session
@@ -32,38 +36,55 @@ class Session
   protected $accessed_at;
 
   /**
-   * @MongoDB\Hash
+   * @MongoDB\EmbedOne()
    */
-  protected $scalar_attributes = array();
+  protected $embedded_bag;
 
   /**
-   * @MongoDB\EmbedMany(strategy="set")
+   * @MongoDB\Field(type="hash")
    */
-  protected $embeddable_attributes;
+  protected $metadata_bag_snapshot;
 
   /**
-   * @MongoDB\Hash
+   * @MongoDB\Field(type="hash")
    */
-  protected $serialized_attributes = array();
+  protected $other_bag_snapshots = [];
+
+  protected $serializer;
 
   /**
    * @author Magnus Nordlander
    **/
   public function __construct()
   {
+    $this->serializer = new Serializer([
+      new Normalizer\MetadataBagNormalizer(),
+      new Normalizer\AttributeBagNormalizer(),
+      new Normalizer\FlashBagNormalizer(),
+    ]);
+
     $this->generateId();
-    $this->embeddable_attributes = new ArrayCollection;
-    $this->created_at = new \DateTime();
-    $this->updateAccessTime();
+    $this->embedded_bag = new EmbeddedBag();
+    $this->setMetadataBagSnapshot(new MetadataBag());
   }
 
-  /**
-   * @author Magnus Nordlander
-   * @MongoDB\PostLoad
-   **/
-  public function updateAccessTime()
+  public function getEmbeddedBag()
   {
-    $this->accessed_at = new \DateTime();
+    return $this->embedded_bag;
+  }
+
+  public function getMetadataBagSnapshot()
+  {
+    return $this->serializer
+      ->denormalize(
+        $this->metadata_bag_snapshot,
+        'Symfony\Component\HttpFoundation\Session\Storage\MetadataBag'
+      );
+  }
+
+  public function setMetadataBagSnapshot(MetadataBag $bag)
+  {
+    $this->metadata_bag_snapshot = $this->metadata_bag_normalizer->normalize($bag);
   }
 
   /**
@@ -84,143 +105,12 @@ class Session
 
   /**
    * @author Magnus Nordlander
-   **/
-  public function read($key)
-  {
-    if (isset($this->scalar_attributes[$key]))
-    {
-      return $this->scalar_attributes[$key];
-    }
-    else if (isset($this->serialized_attributes[$key]))
-    {
-      return unserialize($this->scalar_attributes[$key]);
-    }
-    else if (isset($this->embeddable_attributes[$key]))
-    {
-      return $this->embeddable_attributes[$key];
-    }
-    else
-    {
-      return null;
-    }
-  }
-
-  /**
-   * @author Magnus Nordlander
-   **/
-  public function readAll()
-  {
-    return array_merge(
-      $this->scalar_attributes,
-      array_map('unserialize', $this->serialized_attributes)
-//      $this->getEmbeddableAttributeArray()
-    );
-  }
-
-  /**
-   * @author Magnus Nordlander
-   **/
-  public function getEmbeddableAttributes()
-  {
-    return $this->embeddable_attributes;
-  }
-
-  /**
-   * @author Magnus Nordlander
-   **/
-  public function remove($key)
-  {
-    $retval = null;
-
-    if (isset($this->scalar_attributes[$key]))
-    {
-      $retval = $this->scalar_attributes[$key];
-      unset($this->scalar_attributes[$key]);
-    }
-    else if (isset($this->serialized_attributes[$key]))
-    {
-      $retval = unserialize($this->serialized_attributes[$key]);
-      unset($this->serialized_attributes[$key]);
-    }
-    else if (isset($this->embeddable_attributes[$key]))
-    {
-      $retval = $this->embeddable_attributes[$key];
-      $this->embeddable_attributes->remove($key);
-    }
-    else
-    {
-      return null;
-    }
-
-    return $retval;
-  }
-  
-  /**
-   * @author Joakim Friberg
-   */
-  public function clear()
-  {
-    $this->scalar_attributes = array();
-    $this->serialized_attributes = array();
-    // We can't use clear() here, because that issues an $unset, causing a race condition
-    foreach ($this->embeddable_attributes as $key => $value)
-    {
-      $this->embeddable_attributes->remove($key);
-    }
-//    $this->embeddable_attributes->clear();
-  }
-
-  /**
-   * @author Magnus Nordlander
-   **/
-  public function write($key, $data)
-  {
-    if (isset($this->embeddable_attributes[$key]) && ($data instanceOf SessionEmbeddable))
-    {
-      $this->embeddable_attributes[$key] = $data;
-    }
-    else
-    {
-      $this->remove($key);
-
-      if ($data instanceOf SessionEmbeddable)
-      {
-        $this->embeddable_attributes[$key] = $data;
-      }
-      else if (is_scalar($data) || $data === null)
-      {
-        $this->scalar_attributes[$key] = $data;
-      }
-      else if (is_object($data))
-      {
-        $this->serialized_attributes[$key] = serialize($data);
-      }
-      else if (is_array($data))
-      {
-        if (self::arrayOnlyContainsScalarsRecursive($data))
-        {
-          $this->scalar_attributes[$key] = $data;
-        }
-        else
-        {
-          $this->serialized_attributes[$key] = serialize($data);
-        }
-      }
-      else
-      {
-        throw new \RuntimeError("Data of type ".gettype($data)." cannot be saved in the session");
-      }
-    }
-  }
-
-  /**
-   * @author Magnus Nordlander
    * @see http://www.doctrine-project.org/docs/orm/2.0/en/cookbook/implementing-wakeup-or-clone.html
    **/
   public function __clone()
   {
     // If the entity has an identity, proceed as normal.
-    if ($this->id) 
+    if ($this->id)
     {
       $this->generateId();
 

@@ -2,7 +2,7 @@
 
 namespace Ebutik\MongoSessionBundle\EventListener;
 
-use Ebutik\MongoSessionBundle\SessionStorage\MongoODMSessionStorage;
+use Ebutik\MongoSessionBundle\SessionStorage\ODMSessionStorage;
 
 use Doctrine\ODM\MongoDB\DocumentManager;
 
@@ -24,7 +24,7 @@ class MongoSessionListener
   /**
    * @author Magnus Nordlander
    **/
-  public function __construct(MongoODMSessionStorage $storage)
+  public function __construct(ODMSessionStorage $storage)
   {
     $this->storage = $storage;
   }
@@ -36,7 +36,9 @@ class MongoSessionListener
   {
     if ($event->getRequestType() == HttpKernelInterface::MASTER_REQUEST)
     {
-      $request = $event->getRequest();
+      $this->storage->start();
+
+      /*$request = $event->getRequest();
 
       $options = $this->storage->getOptions();
 
@@ -46,7 +48,7 @@ class MongoSessionListener
         $session_id = $request->cookies->get($options['name']);
       }
 
-      $this->storage->setRequestSessionId($session_id);
+      $this->storage->setRequestSessionId($session_id);*/
     }
   }
 
@@ -58,18 +60,21 @@ class MongoSessionListener
       {
         $response = $event->getResponse();
 
-        try 
-        {
-          $session_id = $this->storage->getId();
-          $options = $this->storage->getOptions();
+        $this->storage->save();
 
-          $response->headers->setCookie(new Cookie($options['name'], 
-                                                   $session_id, 
-                                                   0, 
-                                                   $options['path'],
-                                                   $options['domain'],
-                                                   $options['secure'],
-                                                   $options['httponly']));
+        try
+        {
+          $response->headers->setCookie(
+            new Cookie(
+              $this->storage->getName(),
+              $this->storage->getId()/*,
+              0,
+              $options['path'],
+              $options['domain'],
+              $options['secure'],
+              $options['httponly']*/
+            )
+          );
         }
         catch (\RuntimeException $e)
         {
@@ -77,5 +82,5 @@ class MongoSessionListener
         }
       }
     }
-  }  
+  }
 }

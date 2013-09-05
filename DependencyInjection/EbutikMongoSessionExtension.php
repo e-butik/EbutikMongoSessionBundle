@@ -24,14 +24,14 @@ class EbutikMongoSessionExtension extends Extension
 
     $container->setAlias(
         'ebutik.mongosession.document_manager',
-        new Alias(sprintf('doctrine.odm.mongodb.%s_document_manager', $config['document_manager']))
+        new Alias(sprintf('doctrine_mongodb.odm.%s_document_manager', $config['document_manager']))
     );
 
     $storage_def = $container->getDefinition('ebutik.mongosession.storage');
-    $storage_def->addArgument('stdObject'); // This is changed in a compiler
+/*    $storage_def->addArgument('stdObject'); // This is changed in a compiler
     $storage_def->addArgument($config['session_prototype_id']);
     $storage_def->addArgument($config['strict_request_checking']);
-    $storage_def->addArgument($config['purge_probability_divisor']);
+    $storage_def->addArgument($config['purge_probability_divisor']);*/
   }
 
   public function getAlias()

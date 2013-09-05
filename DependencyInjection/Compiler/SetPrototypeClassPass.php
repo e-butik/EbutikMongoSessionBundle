@@ -13,7 +13,7 @@ class SetPrototypeClassPass implements CompilerPassInterface
    */
   public function process(ContainerBuilder $container)
   {
-    if (!$container->hasDefinition('ebutik.mongosession.storage')) {
+/*    if (!$container->hasDefinition('ebutik.mongosession.storage')) {
       return;
     }
     
@@ -29,6 +29,6 @@ class SetPrototypeClassPass implements CompilerPassInterface
     $prototype_def = $container->getDefinition($prototype_id);
     $args[3] = $prototype_def->getClass();
 
-    $storage_def->setArguments($args);
+    $storage_def->setArguments($args);*/
   }
 }
